@@ -10,10 +10,13 @@ import org.springframework.stereotype.Service;
 import com.example.authentification.config.FirebaseInitializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.auth.ExportedUserRecord;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.ListUsersPage;
 import com.google.firebase.auth.SessionCookieOptions;
 import com.google.firebase.auth.UserRecord;
+import com.google.firebase.auth.UserRecord.CreateRequest;
 
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -22,6 +25,8 @@ import jakarta.annotation.PostConstruct;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -202,6 +207,43 @@ public class AuthService {
         userEntity.setPassword(password);
 
         return utilisateurRepository.save(userEntity);
+    }
+
+    public void syncFirebaseToPostgres() throws Exception {
+        try {
+            ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
+
+            while (page != null) {
+                for (ExportedUserRecord fbUser : page.getValues()) {
+
+                    Optional<Utilisateur> optionalPgUser =
+                            utilisateurRepository.findByEmail(fbUser.getEmail());
+
+                    if (optionalPgUser.isPresent()) {
+                        Utilisateur pgUser = optionalPgUser.get();
+
+                        pgUser.setNom(fbUser.getDisplayName());
+                        pgUser.setBlocked(fbUser.isDisabled());
+
+                        Map<String, Object> claims = fbUser.getCustomClaims();
+                        if (claims != null) {
+                            if (claims.get("role") != null)
+                                pgUser.setRole((Integer) claims.get("role"));
+
+                            if (claims.get("attempts") != null)
+                                pgUser.setAttempts((Integer) claims.get("attempts"));
+                        }
+
+                        utilisateurRepository.save(pgUser);
+                    }
+                }
+
+                page = page.getNextPage();
+            }
+
+        } catch (Exception e) {
+            System.out.println("Firebase → PostgreSQL sync failed: " + e.getMessage());
+        }
     }
 
 }
