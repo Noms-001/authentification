@@ -41,13 +41,33 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/register")
+    @PutMapping("/register")
     public ResponseEntity<ApiResponse<UtilisateurDTO>> register(@RequestParam String email, @RequestParam String nom, @RequestParam String password) {
         try {
             Utilisateur user = authService.register(email, password, nom);
             UtilisateurDTO dto = new UtilisateurDTO(user);
             return ResponseEntity.ok(ApiResponse.success(dto));
         } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/sync/postgres")
+    public ResponseEntity<ApiResponse<Void>> syncPostgres() {
+        try {
+            authService.syncPostgresToFirebase();
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch(Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/sync/firebase")
+    public ResponseEntity<ApiResponse<Void>> syncFirebase() {
+        try {
+            authService.syncFirebaseToPostgres();
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch(Exception e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         }
     }
