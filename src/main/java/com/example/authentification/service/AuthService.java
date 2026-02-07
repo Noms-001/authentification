@@ -22,6 +22,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -188,6 +189,19 @@ public class AuthService {
             handleFailureFirebase(email);
             throw new Exception(e.getMessage());
         }
+    }
+
+    public Utilisateur register(String email, String password, String nom) throws Exception {
+        Utilisateur userEntity = new Utilisateur();
+        userEntity.setId(UUID.randomUUID().toString());
+        userEntity.setEmail(email);
+        userEntity.setNom(nom);
+        userEntity.setRole(10);
+        userEntity.setBlocked(false);
+        userEntity.setAttempts(0);
+        userEntity.setPassword(password);
+
+        return utilisateurRepository.save(userEntity);
     }
 
 }
