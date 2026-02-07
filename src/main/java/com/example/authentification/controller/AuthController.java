@@ -24,4 +24,17 @@ public class AuthController {
             return ResponseEntity.ok(response);
         }
     }
+
+    @PostMapping("firebase/login")
+    public ResponseEntity<ApiResponse<String>> loginWithFirebase(@RequestParam String email, @RequestParam String password) {
+        try {
+            String token = authService.loginWithFirebase(email, password);
+            ApiResponse<String> response = ApiResponse.success(token);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            ApiResponse<String> response = ApiResponse.error(e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
 }
