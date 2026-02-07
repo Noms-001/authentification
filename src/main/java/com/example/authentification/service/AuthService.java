@@ -107,4 +107,35 @@ public class AuthService {
         }
     }
 
+    private int extractIntClaim(Object value) {
+        if (value == null)
+            return 0;
+        if (value instanceof Number)
+            return ((Number) value).intValue();
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void handleFailureFirebase(String email) throws Exception {
+        int maxAttempts = parametreService.getIntValue("MAX_FAILED_ATTEMPS");
+        try {
+            UserRecord fbUser = FirebaseAuth.getInstance().getUserByEmail(email);
+            Map<String, Object> claims = fbUser.getCustomClaims();
+            claims = claims != null ? new HashMap<>(claims) : new HashMap<>();
+
+            int attempts = extractIntClaim(claims.get("failed_attempts")) + 1;
+            boolean blocked = attempts >= maxAttempts;
+
+            claims.put("failed_attempts", attempts);
+            claims.put("blocked", blocked);
+
+            FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
+            System.out.println("Updated Firebase failed attempts for: " + email);
+        } catch (Exception e) {
+            throw new Exception("Could not update Firebase attempts: " + e.getMessage());
+        }
+    }
 }
