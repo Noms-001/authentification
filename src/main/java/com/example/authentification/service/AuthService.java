@@ -46,7 +46,6 @@ public class AuthService {
         FirebaseInitializer.getFirebaseApp();
     }
 
-
     public String loginWithPostgres(String email, String password) throws Exception {
         Utilisateur user = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -216,8 +215,7 @@ public class AuthService {
             while (page != null) {
                 for (ExportedUserRecord fbUser : page.getValues()) {
 
-                    Optional<Utilisateur> optionalPgUser =
-                            utilisateurRepository.findByEmail(fbUser.getEmail());
+                    Optional<Utilisateur> optionalPgUser = utilisateurRepository.findByEmail(fbUser.getEmail());
 
                     if (optionalPgUser.isPresent()) {
                         Utilisateur pgUser = optionalPgUser.get();
@@ -246,7 +244,6 @@ public class AuthService {
         }
     }
 
-
     public void syncPostgresToFirebase() throws Exception {
         try {
             List<Utilisateur> pgUsers = utilisateurRepository.findAll();
@@ -266,7 +263,7 @@ public class AuthService {
                     CreateRequest request = new CreateRequest()
                             .setEmail(pgUser.getEmail())
                             .setDisplayName(pgUser.getNom())
-                            .setPassword(pgUser.getPassword()) 
+                            .setPassword(pgUser.getPassword())
                             .setDisabled(pgUser.isBlocked());
 
                     fbUser = FirebaseAuth.getInstance().createUser(request);
@@ -279,8 +276,7 @@ public class AuthService {
 
                 FirebaseAuth.getInstance().setCustomUserClaims(
                         fbUser.getUid(),
-                        claims
-                );
+                        claims);
             }
 
         } catch (Exception e) {
