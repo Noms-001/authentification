@@ -9,3 +9,4 @@
 
 # Garder aussi le .gitignore lui-même
 !.gitignore
+src/main/resources/projet-cloud-88fd6-firebase-adminsdk-fbsvc-03dd85c77d.json
