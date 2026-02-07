@@ -24,4 +24,21 @@ public class AuthService {
         }
     }
 
+    private int handleFailurePostgres(String email) throws Exception {
+        try {
+            int maxAttempts = parametreService.getIntValue("MAX_FAILED_ATTEMPTS");
+            Utilisateur pgUser = utilisateurRepository.findByEmail(email).orElse(null);
+            if (pgUser != null) {
+                int attempts = pgUser.getAttempts() + 1;
+                pgUser.setAttempts(attempts);
+                pgUser.setBlocked(attempts >= maxAttempts);
+                utilisateurRepository.save(pgUser);
+                return Math.max(maxAttempts - attempts, 0);
+            }
+            return 0;
+
+        } catch (Exception e) {
+            throw new Exception("Failed to update failed attempts: " + e.getMessage());
+        }
+    }
 }
