@@ -1,0 +1,11 @@
+# Ignore tout
+*
+
+# Sauf le dossier src
+!src/
+
+# Et son contenu
+!src/**
+
+# Garder aussi le .gitignore lui-même
+!.gitignore
