@@ -7,8 +7,26 @@ import com.example.authentification.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.authentification.config.FirebaseInitializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.SessionCookieOptions;
+import com.google.firebase.auth.UserRecord;
+
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+import jakarta.annotation.PostConstruct;
+
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class AuthService {
+
+    private static final String FIREBASE_API_KEY = "AIzaSyCWwCxN_mJ35ClzQ_3I9LFEbH5-vdkiI3Q";
 
     @Autowired
     private UtilisateurRepository utilisateurRepository;
@@ -16,6 +34,12 @@ public class AuthService {
     private ParametreService parametreService;
     @Autowired
     private JwtUtil jwtUtil;
+
+    @PostConstruct
+    public void init() throws Exception {
+        FirebaseInitializer.getFirebaseApp();
+    }
+
 
     public String loginWithPostgres(String email, String password) throws Exception {
         Utilisateur user = utilisateurRepository.findByEmail(email)
@@ -65,4 +89,105 @@ public class AuthService {
             throw new Exception("Failed to update failed attempts: " + e.getMessage());
         }
     }
+
+    private void resetAttemptsFirebase(String email) throws Exception {
+        try {
+            UserRecord fbUser = FirebaseAuth.getInstance().getUserByEmail(email);
+
+            Map<String, Object> claims = fbUser.getCustomClaims();
+            claims = claims != null ? new HashMap<>(claims) : new HashMap<>();
+
+            claims.put("failed_attempts", 0);
+            claims.put("blocked", false);
+
+            FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
+
+        } catch (Exception e) {
+            throw new Exception("Failed to reset attempts: " + e.getMessage());
+        }
+    }
+
+    private int extractIntClaim(Object value) {
+        if (value == null)
+            return 0;
+        if (value instanceof Number)
+            return ((Number) value).intValue();
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void handleFailureFirebase(String email) throws Exception {
+        int maxAttempts = parametreService.getIntValue("MAX_FAILED_ATTEMPS");
+        try {
+            UserRecord fbUser = FirebaseAuth.getInstance().getUserByEmail(email);
+            Map<String, Object> claims = fbUser.getCustomClaims();
+            claims = claims != null ? new HashMap<>(claims) : new HashMap<>();
+
+            int attempts = extractIntClaim(claims.get("failed_attempts")) + 1;
+            boolean blocked = attempts >= maxAttempts;
+
+            claims.put("failed_attempts", attempts);
+            claims.put("blocked", blocked);
+
+            FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
+            System.out.println("Updated Firebase failed attempts for: " + email);
+        } catch (Exception e) {
+            throw new Exception("Could not update Firebase attempts: " + e.getMessage());
+        }
+    }
+
+    public String loginWithFirebase(String email, String password) throws Exception {
+        try {
+            String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
+                    + FIREBASE_API_KEY;
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            String payload = String.format(
+                    "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
+                    email, password);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(response.getBody());
+            String idToken = node.get("idToken").asText();
+
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+
+            Map<String, Object> claims = decodedToken.getClaims();
+
+            boolean blocked = claims.get("blocked") instanceof Boolean
+                    ? (Boolean) claims.get("blocked")
+                    : false;
+
+            if (blocked) {
+                throw new RuntimeException("User account is blocked");
+            }
+
+            resetAttemptsFirebase(email);
+
+            int sessionDurationMinutes = parametreService.getIntValue("SESSION_DURATION");
+            String sessionCookie = FirebaseAuth.getInstance().createSessionCookie(
+                    decodedToken.getUid(),
+                    SessionCookieOptions.builder()
+                            .setExpiresIn(sessionDurationMinutes * 60L * 1000L)
+                            .build());
+
+            return sessionCookie;
+
+        } catch (Exception e) {
+            handleFailureFirebase(email);
+            throw new Exception(e.getMessage());
+        }
+    }
+
 }
