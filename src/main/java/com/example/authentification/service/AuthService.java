@@ -7,8 +7,26 @@ import com.example.authentification.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.authentification.config.FirebaseInitializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.SessionCookieOptions;
+import com.google.firebase.auth.UserRecord;
+
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+import jakarta.annotation.PostConstruct;
+
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class AuthService {
+
+    private static final String FIREBASE_API_KEY = "AIzaSyCWwCxN_mJ35ClzQ_3I9LFEbH5-vdkiI3Q";
 
     @Autowired
     private UtilisateurRepository utilisateurRepository;
@@ -16,6 +34,12 @@ public class AuthService {
     private ParametreService parametreService;
     @Autowired
     private JwtUtil jwtUtil;
+
+    @PostConstruct
+    public void init() throws Exception {
+        FirebaseInitializer.getFirebaseApp();
+    }
+
 
     public String loginWithPostgres(String email, String password) throws Exception {
         Utilisateur user = utilisateurRepository.findByEmail(email)
@@ -65,4 +89,22 @@ public class AuthService {
             throw new Exception("Failed to update failed attempts: " + e.getMessage());
         }
     }
+
+    private void resetAttemptsFirebase(String email) throws Exception {
+        try {
+            UserRecord fbUser = FirebaseAuth.getInstance().getUserByEmail(email);
+
+            Map<String, Object> claims = fbUser.getCustomClaims();
+            claims = claims != null ? new HashMap<>(claims) : new HashMap<>();
+
+            claims.put("failed_attempts", 0);
+            claims.put("blocked", false);
+
+            FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
+
+        } catch (Exception e) {
+            throw new Exception("Failed to reset attempts: " + e.getMessage());
+        }
+    }
+
 }
