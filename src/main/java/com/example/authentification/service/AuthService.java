@@ -2,6 +2,7 @@ package com.example.authentification.service;
 
 import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.repository.UtilisateurRepository;
+import com.example.authentification.util.JwtUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,30 @@ public class AuthService {
     private UtilisateurRepository utilisateurRepository;
     @Autowired
     private ParametreService parametreService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
+    public String loginWithPostgres(String email, String password) throws Exception {
+        Utilisateur user = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.isBlocked()) {
+            throw new RuntimeException("User account is blocked");
+        }
+
+        if (!password.equals(user.getPassword())) {
+            int leftAttemps = handleFailurePostgres(email);
+            throw new RuntimeException("Wrong password only " + leftAttemps + " attemps left.");
+        }
+
+        user.setAttempts(0);
+        utilisateurRepository.save(user);
+        resetAttemptPostgres(email);
+
+        String token = jwtUtil.generateToken(user.getId(), parametreService.getIntValue("SESSION_DURATION"));
+
+        return token;
+    }
 
     private void resetAttemptPostgres(String email) {
         Utilisateur user = utilisateurRepository.findByEmail(email).orElse(null);
