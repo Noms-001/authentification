@@ -13,8 +13,7 @@ public class Utilisateur {
     private String email;
     private String password;
     private String nom;
-    private String photo;
-    private String role;
+    private Integer role;
     private boolean blocked;
     private int attempts;
 
@@ -51,19 +50,11 @@ public class Utilisateur {
         this.nom = nom;
     }
 
-    public String getPhoto() {
-        return photo;
-    }
-
-    public void setPhoto(String photo) {
-        this.photo = photo;
-    }
-
-    public String getRole() {
+    public Integer getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Integer role) {
         this.role = role;
     }
 
