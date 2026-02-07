@@ -2,7 +2,6 @@ package com.example.authentification.util;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
 
 import java.nio.charset.StandardCharsets;
