@@ -138,4 +138,56 @@ public class AuthService {
             throw new Exception("Could not update Firebase attempts: " + e.getMessage());
         }
     }
+
+    public String loginWithFirebase(String email, String password) throws Exception {
+        try {
+            String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
+                    + FIREBASE_API_KEY;
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            String payload = String.format(
+                    "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
+                    email, password);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(response.getBody());
+            String idToken = node.get("idToken").asText();
+
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+
+            Map<String, Object> claims = decodedToken.getClaims();
+
+            boolean blocked = claims.get("blocked") instanceof Boolean
+                    ? (Boolean) claims.get("blocked")
+                    : false;
+
+            if (blocked) {
+                throw new RuntimeException("User account is blocked");
+            }
+
+            resetAttemptsFirebase(email);
+
+            int sessionDurationMinutes = parametreService.getIntValue("SESSION_DURATION");
+            String sessionCookie = FirebaseAuth.getInstance().createSessionCookie(
+                    decodedToken.getUid(),
+                    SessionCookieOptions.builder()
+                            .setExpiresIn(sessionDurationMinutes * 60L * 1000L)
+                            .build());
+
+            return sessionCookie;
+
+        } catch (Exception e) {
+            handleFailureFirebase(email);
+            throw new Exception(e.getMessage());
+        }
+    }
+
 }
