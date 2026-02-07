@@ -246,4 +246,45 @@ public class AuthService {
         }
     }
 
+
+    public void syncPostgresToFirebase() throws Exception {
+        try {
+            List<Utilisateur> pgUsers = utilisateurRepository.findAll();
+
+            for (Utilisateur pgUser : pgUsers) {
+
+                UserRecord fbUser = null;
+
+                try {
+                    fbUser = FirebaseAuth.getInstance()
+                            .getUserByEmail(pgUser.getEmail());
+                } catch (Exception e) {
+                    fbUser = null;
+                }
+
+                if (fbUser == null) {
+                    CreateRequest request = new CreateRequest()
+                            .setEmail(pgUser.getEmail())
+                            .setDisplayName(pgUser.getNom())
+                            .setPassword(pgUser.getPassword()) 
+                            .setDisabled(pgUser.isBlocked());
+
+                    fbUser = FirebaseAuth.getInstance().createUser(request);
+                }
+
+                Map<String, Object> claims = new HashMap<>();
+                claims.put("role", pgUser.getRole());
+                claims.put("attempts", pgUser.getAttempts());
+                claims.put("blocked", pgUser.isBlocked());
+
+                FirebaseAuth.getInstance().setCustomUserClaims(
+                        fbUser.getUid(),
+                        claims
+                );
+            }
+
+        } catch (Exception e) {
+            throw new Exception("PostgreSQL → Firebase sync failed: " + e.getMessage());
+        }
+    }
 }
