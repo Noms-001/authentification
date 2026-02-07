@@ -45,7 +45,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UtilisateurDTO>> register(@RequestParam String email, @RequestParam String nom, @RequestParam String password) {
         try {
             Utilisateur user = authService.register(email, password, nom);
-            UtilisateurDTO dto = new UtilisateurDTO(user.getId(), user.getEmail(), user.getNom(), user.getRole());
+            UtilisateurDTO dto = new UtilisateurDTO(user);
             return ResponseEntity.ok(ApiResponse.success(dto));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
