@@ -42,9 +42,9 @@ public class AuthController {
     }
 
     @PutMapping("/register")
-    public ResponseEntity<ApiResponse<UtilisateurDTO>> register(@RequestParam String email, @RequestParam String nom, @RequestParam String password) {
+    public ResponseEntity<ApiResponse<UtilisateurDTO>> register(@RequestParam String email, @RequestParam String nom, @RequestParam String password, @RequestParam(required = false) Integer role) {
         try {
-            Utilisateur user = authService.register(email, password, nom);
+            Utilisateur user = authService.register(email, password, nom, role);
             UtilisateurDTO dto = new UtilisateurDTO(user);
             return ResponseEntity.ok(ApiResponse.success(dto));
         } catch (Exception e) {
