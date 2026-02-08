@@ -30,7 +30,7 @@ public class UtilisateurService {
         return userRepository.save(user);
     }
 
-    public List<Utilisateur> searchUsers(String keyword, String authorizationHeader) {
+    public List<Utilisateur> searchUsers(String keyword, String authorizationHeader) throws Exception {
         UtilisateurDTO connectedUser = sessionService.getConnectedUser(authorizationHeader);
         if(connectedUser.getRole() < 20) {
             throw new Exception("Unauthorized: insufficient permissions");

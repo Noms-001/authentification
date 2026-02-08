@@ -52,8 +52,8 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/sync/postgres")
-    public ResponseEntity<ApiResponse<Void>> syncPostgres() {
+    @PostMapping("/sync/firebase")
+    public ResponseEntity<ApiResponse<Void>> syncFirebase() {
         try {
             authService.syncPostgresToFirebase();
             return ResponseEntity.ok(ApiResponse.success(null));
@@ -62,8 +62,8 @@ public class AuthController {
         }
     }
     
-    @PostMapping("/sync/firebase")
-    public ResponseEntity<ApiResponse<Void>> syncFirebase() {
+    @PostMapping("/sync/postgres")
+    public ResponseEntity<ApiResponse<Void>> syncPostgres() {
         try {
             authService.syncFirebaseToPostgres();
             return ResponseEntity.ok(ApiResponse.success(null));
