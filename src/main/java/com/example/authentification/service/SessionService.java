@@ -1,18 +1,11 @@
 package com.example.authentification.service;
 
-import java.util.Map;
-
 import org.springframework.stereotype.Service;
 
-import com.example.authentification.dto.ApiResponse;
 import com.example.authentification.dto.UtilisateurDTO;
-import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.repository.UtilisateurRepository;
 import com.example.authentification.util.JwtUtil;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
-import com.google.firebase.auth.UserRecord;
 
 @Service
 public class SessionService {
