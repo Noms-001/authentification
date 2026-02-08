@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.authentification.dto.UtilisateurDTO;
+import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.service.UtilisateurService;
 
 @RestController
@@ -14,7 +16,10 @@ public class UtilisateurController {
     public UtilisateurService utilisateurService;
 
     @PutMapping("/{email}")
-    public void updateUser(String email, String password, String nom) throws Exception {
-        utilisateurService.updateUserByEmail(email, password, nom);
+    public UtilisateurDTO updateUser(String email, String password, String nom) throws Exception {
+        Utilisateur user = utilisateurService.updateUserByEmail(email, password, nom);
+        return new UtilisateurDTO(user);
     }
+
+    @
 }
