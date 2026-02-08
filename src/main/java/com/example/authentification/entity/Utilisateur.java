@@ -16,6 +16,15 @@ public class Utilisateur {
     private Integer role;
     private boolean blocked;
     private int attempts;
+    private boolean sync;
+
+    public boolean isSync() {
+        return sync;
+    }
+
+    public void setSync(boolean sync) {
+        this.sync = sync;
+    }
 
     // Getters et setters
     public String getId() {

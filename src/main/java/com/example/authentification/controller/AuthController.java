@@ -5,6 +5,9 @@ import com.example.authentification.dto.UtilisateurDTO;
 import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.service.AuthService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,21 +55,15 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/sync/firebase")
-    public ResponseEntity<ApiResponse<Void>> syncFirebase() {
+    @PostMapping("/sync")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> syncFirebase() {
         try {
-            authService.syncPostgresToFirebase();
-            return ResponseEntity.ok(ApiResponse.success(null));
-        } catch(Exception e) {
-            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/sync/postgres")
-    public ResponseEntity<ApiResponse<Void>> syncPostgres() {
-        try {
-            authService.syncFirebaseToPostgres();
-            return ResponseEntity.ok(ApiResponse.success(null));
+            int firebaseSynced = authService.syncFirebaseToPostgres();
+            int postgresSynced = authService.syncPostgresToFirebase();
+            Map<String, Integer> result = new HashMap<>();
+            result.put("from_firebase", firebaseSynced);
+            result.put("from_postgres", postgresSynced);
+            return ResponseEntity.ok(ApiResponse.success(result));
         } catch(Exception e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         }

@@ -25,11 +25,11 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String userId, int expMinutes) {
+    public String generateToken(String userId, int expsecondes) {
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
 
-        long expMillis = nowMillis + expMinutes * 60L * 1000L;
+        long expMillis = nowMillis + expsecondes * 1000L;
         Date exp = new Date(expMillis);
 
         return Jwts.builder()

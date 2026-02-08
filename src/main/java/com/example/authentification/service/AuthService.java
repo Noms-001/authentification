@@ -73,6 +73,7 @@ public class AuthService {
         if (user != null) {
             user.setAttempts(0);
             user.setBlocked(false);
+            user.setSync(false);
             utilisateurRepository.save(user);
         }
     }
@@ -85,6 +86,7 @@ public class AuthService {
                 int attempts = pgUser.getAttempts() + 1;
                 pgUser.setAttempts(attempts);
                 pgUser.setBlocked(attempts >= maxAttempts);
+                pgUser.setSync(false);
                 utilisateurRepository.save(pgUser);
                 return Math.max(maxAttempts - attempts, 0);
             }
@@ -104,6 +106,7 @@ public class AuthService {
 
             claims.put("failed_attempts", 0);
             claims.put("blocked", false);
+            claims.put("sync", false);
 
             FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
 
@@ -136,6 +139,7 @@ public class AuthService {
 
             claims.put("failed_attempts", attempts);
             claims.put("blocked", blocked);
+            claims.put("sync", false);
 
             FirebaseAuth.getInstance().setCustomUserClaims(fbUser.getUid(), claims);
             System.out.println("Updated Firebase failed attempts for: " + email);
@@ -180,11 +184,11 @@ public class AuthService {
 
             resetAttemptsFirebase(email);
 
-            int sessionDurationMinutes = parametreService.getIntValue("SESSION_DURATION");
+            int sessionDurationSecondes = parametreService.getIntValue("SESSION_DURATION");
             String sessionCookie = FirebaseAuth.getInstance().createSessionCookie(
                     decodedToken.getUid(),
                     SessionCookieOptions.builder()
-                            .setExpiresIn(sessionDurationMinutes * 60L * 1000L)
+                            .setExpiresIn(sessionDurationSecondes * 1000L)
                             .build());
 
             return sessionCookie;
@@ -196,7 +200,7 @@ public class AuthService {
     }
 
     public Utilisateur register(String email, String password, String nom, Integer role) throws Exception {
-        if(utilisateurRepository.findByEmail(email).isPresent()) {
+        if (utilisateurRepository.findByEmail(email).isPresent()) {
             throw new Exception("Email already in use");
         }
         Utilisateur userEntity = new Utilisateur();
@@ -207,52 +211,56 @@ public class AuthService {
         userEntity.setBlocked(false);
         userEntity.setAttempts(0);
         userEntity.setPassword(password);
+        userEntity.setSync(false);
 
         return utilisateurRepository.save(userEntity);
     }
 
-    public void syncFirebaseToPostgres() throws Exception {
+    public int syncFirebaseToPostgres() throws Exception {
         try {
+            int count = 0;
             ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
 
             while (page != null) {
                 for (ExportedUserRecord fbUser : page.getValues()) {
+                    Map<String, Object> fbClaims = fbUser.getCustomClaims();
+                    Boolean isSync = (Boolean) fbClaims.get("sync");
+                    if (isSync != null && isSync) continue;
 
                     Optional<Utilisateur> optionalPgUser = utilisateurRepository.findByEmail(fbUser.getEmail());
 
-                    if (optionalPgUser.isPresent()) {
+                    if (optionalPgUser.isPresent() && optionalPgUser.get().isSync()) {
                         Utilisateur pgUser = optionalPgUser.get();
 
                         pgUser.setNom(fbUser.getDisplayName());
                         pgUser.setBlocked(fbUser.isDisabled());
 
                         Map<String, Object> claims = fbUser.getCustomClaims();
-                        if (claims != null) {
-                            if (claims.get("role") != null)
-                                pgUser.setRole((Integer) claims.get("role"));
 
-                            if (claims.get("attempts") != null)
-                                pgUser.setAttempts((Integer) claims.get("attempts"));
-                        }
+                        if (claims.get("attempts") != null)
+                            pgUser.setAttempts((Integer) claims.get("attempts"));
 
+                        pgUser.setSync(true);
                         utilisateurRepository.save(pgUser);
+                        count++;
                     }
                 }
-
-                page = page.getNextPage();
+                if (page != null)  page = page.getNextPage();
             }
-
+            return count;
         } catch (Exception e) {
-            System.out.println("Firebase → PostgreSQL sync failed: " + e.getMessage());
+            throw new Exception("Firebase → PostgreSQL sync failed: " + e.getMessage());
         }
     }
 
-    public void syncPostgresToFirebase() throws Exception {
+    public int syncPostgresToFirebase() throws Exception {
         try {
+            int count = 0;
             List<Utilisateur> pgUsers = utilisateurRepository.findAll();
 
             for (Utilisateur pgUser : pgUsers) {
-
+                if (pgUser.isSync() || pgUser.getRole() > 10)
+                    continue;
                 UserRecord fbUser = null;
 
                 try {
@@ -273,15 +281,17 @@ public class AuthService {
                 }
 
                 Map<String, Object> claims = new HashMap<>();
-                claims.put("role", pgUser.getRole());
                 claims.put("attempts", pgUser.getAttempts());
                 claims.put("blocked", pgUser.isBlocked());
+                claims.put("sync", true);
 
                 FirebaseAuth.getInstance().setCustomUserClaims(
                         fbUser.getUid(),
                         claims);
+                count++;
             }
-
+            return count;
+            
         } catch (Exception e) {
             throw new Exception("PostgreSQL → Firebase sync failed: " + e.getMessage());
         }
