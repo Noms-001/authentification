@@ -24,4 +24,7 @@ public class UtilisateurService {
 
         return userRepository.save(user);
     }
+    public List<Utilisateur> getAllBlockedUsers() {
+        return userRepository.findByIsBlockedTrue();
+    }
 }
