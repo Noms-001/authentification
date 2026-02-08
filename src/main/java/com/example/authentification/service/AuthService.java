@@ -195,7 +195,7 @@ public class AuthService {
         }
     }
 
-    public Utilisateur register(String email, String password, String nom) throws Exception {
+    public Utilisateur register(String email, String password, String nom, Integer role) throws Exception {
         if(utilisateurRepository.findByEmail(email).isPresent()) {
             throw new Exception("Email already in use");
         }
@@ -203,7 +203,7 @@ public class AuthService {
         userEntity.setId(UUID.randomUUID().toString());
         userEntity.setEmail(email);
         userEntity.setNom(nom);
-        userEntity.setRole(10);
+        userEntity.setRole(role != null ? role : 10);
         userEntity.setBlocked(false);
         userEntity.setAttempts(0);
         userEntity.setPassword(password);
