@@ -71,4 +71,14 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @PostMapping("/user/{email}/unblock")
+    public ResponseEntity<ApiResponse<String>> unblockByEmail(@PathVariable String email) {
+        try {
+            authService.resetAttemptPostgres(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "User unblocked successfully", null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
 }

@@ -68,7 +68,7 @@ public class AuthService {
         return token;
     }
 
-    private void resetAttemptPostgres(String email) {
+    public void resetAttemptPostgres(String email) {
         Utilisateur user = utilisateurRepository.findByEmail(email).orElse(null);
         if (user != null) {
             user.setAttempts(0);
