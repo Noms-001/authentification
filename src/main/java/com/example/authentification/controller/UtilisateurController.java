@@ -21,7 +21,7 @@ public class UtilisateurController {
         return new UtilisateurDTO(user);
     }
 
-    @
+    @GetMapping("/blocked")
     public ResponseEntity<ApiResponse<List<UtilisateurDTO>>> getBlockedUsers() {
         try {
             List<Utilisateur> blockedUsers = utilisateurService.getAllBlockedUsers();
