@@ -22,4 +22,13 @@ public class UtilisateurController {
     }
 
     @
+    public ResponseEntity<ApiResponse<List<UtilisateurDTO>>> getBlockedUsers() {
+        try {
+            List<Utilisateur> blockedUsers = utilisateurService.getAllBlockedUsers();
+            List<UtilisateurDTO> userDTOs = blockedUsers.stream().map(UtilisateurDTO::new).collect(Collectors.toList());
+            return ResponseEntity.ok(new ApiResponse<>(true, userDTOs, null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
 }
