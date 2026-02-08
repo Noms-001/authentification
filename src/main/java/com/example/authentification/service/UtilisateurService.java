@@ -47,6 +47,6 @@ public class UtilisateurService {
     }
 
     public List<Utilisateur> getAllBlockedUsers() {
-        return userRepository.findByIsBlockedTrue();
+        return userRepository.findByBlockedTrue();
     }
 }

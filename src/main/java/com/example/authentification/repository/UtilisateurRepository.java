@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface UtilisateurRepository extends JpaRepository<Utilisateur, String> {
     Optional<Utilisateur> findByEmail(String email);
     
-    List<Utilisateur> findByIsBlockedTrue();
+    List<Utilisateur> findByBlockedTrue();
 
     @Query("SELECT u FROM Utilisateur u WHERE u.email LIKE %:keyword% OR u.nom LIKE %:keyword%")
     List<Utilisateur> findByEmailContainingOrNomContaining(@Param("keyword") String keyword);
