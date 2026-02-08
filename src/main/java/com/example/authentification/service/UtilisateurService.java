@@ -3,6 +3,7 @@ package com.example.authentification.service;
 import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.repository.UtilisateurRepository;
 
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,9 @@ public class UtilisateurService {
 
     @Autowired
     private UtilisateurRepository userRepository;
+
+    @Autowired
+    private SessionService sessionService;
 
     public Utilisateur updateUserByEmail(String email, String password, String nom) throws Exception {
         Utilisateur user = userRepository.findByEmail(email)
@@ -23,5 +27,22 @@ public class UtilisateurService {
             user.setNom(nom);
 
         return userRepository.save(user);
+    }
+
+    public List<Utilisateur> searchUsers(String keyword, String authorizationHeader) {
+        UtilisateurDTO connectedUser = sessionService.getConnectedUser(authorizationHeader);
+        if(connectedUser.getRole() < 20) {
+            throw new Exception("Unauthorized: insufficient permissions");
+        }
+        
+        List<Utilisateur> users;
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            users = userRepository.findByEmailContainingOrNomContaining(keyword);
+        } else {
+            users = userRepository.findAll();
+        }
+        
+        return users;
     }
 }
