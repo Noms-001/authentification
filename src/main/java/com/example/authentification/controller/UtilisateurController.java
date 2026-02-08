@@ -39,7 +39,7 @@ public class UtilisateurController {
     @GetMapping("/blocked")
     public ResponseEntity<ApiResponse<List<UtilisateurDTO>>> getBlockedUsers() {
         try {
-            List<Utilisateur> users = utilisateurService.searchUsers(keyword, authorizationHeader);
+            List<Utilisateur> users = utilisateurService.getAllBlockedUsers();
             List<UtilisateurDTO> userDTOs = users.stream().map(UtilisateurDTO::new).collect(Collectors.toList());
             return ResponseEntity.ok(new ApiResponse<>(true, userDTOs, null));
         } catch (Exception e) {

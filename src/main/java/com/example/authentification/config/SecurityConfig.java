@@ -41,6 +41,7 @@ public class SecurityConfig {
 
                         // Auth API
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/**").permitAll()
 
                         // Test DB
                         .requestMatchers("/api/params/**").permitAll()
