@@ -13,7 +13,16 @@ public class ParametreService {
     private ParametreRepository parametreRepository;
 
     public int getIntValue(String key) throws Exception{
-        Parametre param = parametreRepository.findByCle("MAX_FAILED_ATTEMPTS").orElseThrow();
+        Parametre param = parametreRepository.findByCle(key).orElseThrow();
         return Integer.parseInt(param.getValeur());
+    }
+
+    public void setParam(String cle, String valeur, String type, String desc) {
+        Parametre param = parametreRepository.findByCle(cle).orElse(new Parametre());
+        param.setCle(cle);
+        param.setValeur(valeur);
+        param.setType(type);
+        param.setDescription(desc);
+        parametreRepository.save(param);
     }
 }
