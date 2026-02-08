@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import com.example.authentification.config.FirebaseInitializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.SetOptions;
 import com.google.firebase.auth.ExportedUserRecord;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
@@ -17,6 +19,7 @@ import com.google.firebase.auth.ListUsersPage;
 import com.google.firebase.auth.SessionCookieOptions;
 import com.google.firebase.auth.UserRecord;
 import com.google.firebase.auth.UserRecord.CreateRequest;
+import com.google.firebase.cloud.FirestoreClient;
 
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -225,7 +228,8 @@ public class AuthService {
                 for (ExportedUserRecord fbUser : page.getValues()) {
                     Map<String, Object> fbClaims = fbUser.getCustomClaims();
                     Boolean isSync = (Boolean) fbClaims.get("sync");
-                    if (isSync != null && isSync) continue;
+                    if (isSync != null && isSync)
+                        continue;
 
                     Optional<Utilisateur> optionalPgUser = utilisateurRepository.findByEmail(fbUser.getEmail());
 
@@ -245,7 +249,8 @@ public class AuthService {
                         count++;
                     }
                 }
-                if (page != null)  page = page.getNextPage();
+                if (page != null)
+                    page = page.getNextPage();
             }
             return count;
         } catch (Exception e) {
@@ -256,13 +261,16 @@ public class AuthService {
     public int syncPostgresToFirebase() throws Exception {
         try {
             int count = 0;
+            Firestore db = FirestoreClient.getFirestore();
+
             List<Utilisateur> pgUsers = utilisateurRepository.findAll();
 
             for (Utilisateur pgUser : pgUsers) {
+
                 if (pgUser.isSync() || pgUser.getRole() > 10)
                     continue;
-                UserRecord fbUser = null;
 
+                UserRecord fbUser;
                 try {
                     fbUser = FirebaseAuth.getInstance()
                             .getUserByEmail(pgUser.getEmail());
@@ -270,6 +278,7 @@ public class AuthService {
                     fbUser = null;
                 }
 
+                // 🔹 Création Firebase Auth si absent
                 if (fbUser == null) {
                     CreateRequest request = new CreateRequest()
                             .setEmail(pgUser.getEmail())
@@ -285,15 +294,31 @@ public class AuthService {
                 claims.put("blocked", pgUser.isBlocked());
                 claims.put("sync", true);
 
-                FirebaseAuth.getInstance().setCustomUserClaims(
-                        fbUser.getUid(),
-                        claims);
+                FirebaseAuth.getInstance()
+                        .setCustomUserClaims(fbUser.getUid(), claims);
+
+                Map<String, Object> fsUser = new HashMap<>();
+                fsUser.put("email", pgUser.getEmail());
+                fsUser.put("nom", pgUser.getNom());
+                fsUser.put("attempts", pgUser.getAttempts());
+                fsUser.put("blocked", pgUser.isBlocked());
+                fsUser.put("role", pgUser.getRole());
+                fsUser.put("sync", true);
+
+                db.collection("users")
+                        .document(fbUser.getUid())
+                        .set(fsUser, SetOptions.merge());
+
+                pgUser.setSync(true);
+                utilisateurRepository.save(pgUser);
+
                 count++;
             }
             return count;
-            
+
         } catch (Exception e) {
-            throw new Exception("PostgreSQL → Firebase sync failed: " + e.getMessage());
+            throw new Exception("PostgreSQL → Firebase sync failed: " + e.getMessage(), e);
         }
     }
+
 }
