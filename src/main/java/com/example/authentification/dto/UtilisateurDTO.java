@@ -1,6 +1,8 @@
 package com.example.authentification.dto;
 
 import com.example.authentification.entity.Utilisateur;
+import com.google.firebase.auth.UserRecord;
+import java.util.Map;
 
 public class UtilisateurDTO {
     private String id;
@@ -9,6 +11,15 @@ public class UtilisateurDTO {
     private Integer role;
     private Integer attemps;
     private Boolean blocked;
+
+    public UtilisateurDTO(UserRecord fbUser, Map<String, Object> claims) {
+        this.id = fbUser.getUid();
+        this.email = fbUser.getEmail();
+        this.nom = fbUser.getDisplayName();
+        this.role = claims != null ? (Integer) claims.getOrDefault("role", 10) : 10;
+        this.attemps = claims != null ? ((Number) claims.getOrDefault("failed_attempts", 0)).intValue() : 0;
+        this.blocked = claims != null ? (Boolean) claims.getOrDefault("blocked", false) : false;
+    }
 
     public UtilisateurDTO(Utilisateur user) {
         this.id = user.getId(); 
