@@ -4,6 +4,7 @@ import com.example.authentification.entity.Utilisateur;
 import com.example.authentification.repository.UtilisateurRepository;
 
 import java.util.List;
+import com.example.authentification.dto.UtilisateurDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +35,6 @@ public class UtilisateurService {
         if(connectedUser.getRole() < 20) {
             throw new Exception("Unauthorized: insufficient permissions");
         }
-        
         List<Utilisateur> users;
         
         if (keyword != null && !keyword.isEmpty()) {
@@ -44,5 +44,9 @@ public class UtilisateurService {
         }
         
         return users;
+    }
+
+    public List<Utilisateur> getAllBlockedUsers() {
+        return userRepository.findByIsBlockedTrue();
     }
 }
