@@ -196,6 +196,9 @@ public class AuthService {
     }
 
     public Utilisateur register(String email, String password, String nom) throws Exception {
+        if(utilisateurRepository.findByEmail(email).isPresent()) {
+            throw new Exception("Email already in use");
+        }
         Utilisateur userEntity = new Utilisateur();
         userEntity.setId(UUID.randomUUID().toString());
         userEntity.setEmail(email);
